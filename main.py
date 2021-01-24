@@ -101,8 +101,9 @@ if __name__ == '__main__':
 converter = tf.lite.TFLiteConverter.from_keras_model(model)
 tflite_model = converter.convert()
 
-output_filename = 'har'
+output_filename = 'emergency-detect'
 open(f'output/{output_filename}.tflite', 'wb').write(tflite_model)
-os.system(f'xxd -i output/{output_filename}.tflite > output/{output_filename}.cc')
+os.system(f'echo "#include \\"emergency-detect.h\\"\n" > output/{output_filename}.cc')
+os.system(f'xxd -i output/{output_filename}.tflite >> output/{output_filename}.cc')
 
 # %%
