@@ -1,4 +1,4 @@
-# Dangerous detect
+# Emergency detect
 
 ## Datasets
 * uci_har_dataset
