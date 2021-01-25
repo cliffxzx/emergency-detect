@@ -63,12 +63,12 @@ def load_dataset(path):
 def fit_model(trainX, trainy, epochs=10, batch_size=32, verbose=0):
   n_timesteps, n_features, n_outputs = trainX.shape[1], trainX.shape[2], trainy.shape[1]
   model = models.Sequential([
-    layers.Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=(n_timesteps, n_features)),
-    layers.Conv1D(filters=64, kernel_size=3, activation='relu'),
+    layers.Conv1D(filters=8, kernel_size=3, activation='relu', input_shape=(n_timesteps, n_features)),
+    layers.Conv1D(filters=8, kernel_size=3, activation='relu'),
     layers.Dropout(0.5),
     layers.MaxPooling1D(pool_size=2),
     layers.Flatten(),
-    layers.Dense(100, activation='relu'),
+    layers.Dense(25, activation='relu'),
     layers.Dense(n_outputs, activation='softmax'),
   ])
 
@@ -92,6 +92,7 @@ if __name__ == '__main__':
     print('>#%d: %.3f' % (r+1, score))
     scores.append(score)
 
+  model.summary()
   # summarize results
   print(scores)
   m, s = np.mean(scores), np.std(scores)
