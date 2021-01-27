@@ -4,6 +4,7 @@
 import os
 
 import numpy as np
+from numpy.lib.arraysetops import unique
 import pandas as pd
 import tensorflow as tf
 from tensorflow.keras import utils, models, layers
@@ -106,5 +107,9 @@ output_filename = 'emergency-detect'
 open(f'output/{output_filename}.tflite', 'wb').write(tflite_model)
 os.system(f'echo "#include \\"emergency-detect.h\\"\n" > output/{output_filename}.cc')
 os.system(f'xxd -i output/{output_filename}.tflite >> output/{output_filename}.cc')
+
+ops_details = tf.lite.Interpreter(model_path=f'output/{output_filename}.tflite')._get_ops_details()
+ops_list = set(map(lambda x: x['op_name'], ops_details))
+print("\nOperations list: ", ops_list)
 
 # %%
