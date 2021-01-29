@@ -55,12 +55,22 @@ def load_dataset(path):
   testy = utils.to_categorical(testy)
   print(trainX.shape, trainy.shape, testX.shape, testy.shape)
   return trainX, trainy, testX, testy
+def scheduler(epoch,lr):
+  if (epoch+1) % 5 == 0:
+    return lr*0.8
+  else:
+    return lr
 # %% Define model's functions
 # fit a model
 def fit_model(trainX, trainy, epochs=15, batch_size=32, verbose=1):
   n_timesteps, n_features, n_outputs = trainX.shape[1], trainX.shape[2], trainy.shape[1]
+
+  norm_layer = layers.experimental.preprocessing.Normalization()
+  norm_layer.adapt(trainX)
+
   model = models.Sequential([
     layers.Input(shape=(n_timesteps, n_features)),
+    norm_layer,
     layers.AveragePooling1D(),
     layers.Conv1D(filters=8, kernel_size=256, activation='relu'),
     layers.MaxPooling1D(),
@@ -72,7 +82,8 @@ def fit_model(trainX, trainy, epochs=15, batch_size=32, verbose=1):
   opt = tf.keras.optimizers.Adam(learning_rate=0.0001)
   model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
   # fit network
-  model.fit(trainX, trainy, epochs=epochs, batch_size=batch_size, verbose=verbose)
+  callback = tf.keras.callbacks.LearningRateScheduler(scheduler)
+  model.fit(trainX, trainy, epochs=epochs, batch_size=batch_size, verbose=verbose,callbacks=[callback])
 
   return model
 
