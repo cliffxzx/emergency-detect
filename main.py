@@ -22,6 +22,11 @@ def window(a, w, o, copy = False):
 
 labels = {'n': 0, 'b': 1, 'c': 2, 's': 3}
 
+def unison_shuffled_copies(a, b):
+    assert len(a) == len(b)
+    p = np.random.permutation(len(a))
+    return a[p], b[p]
+
 def load_dataset(path):
   filenames = tf.io.gfile.glob(str(path) + '/*')
   x, y = np.empty(shape=(0,22050)), np.empty(shape=(0,1))
@@ -41,6 +46,8 @@ def load_dataset(path):
       y = np.vstack((y, sub_y))
 
   x = x.reshape(-1, 22050, 1);
+  x, y = unison_shuffled_copies(x, y)
+
   trainX, trainy = x[:int(len(x)*.8)], y[:int(len(x)*.8)]
   testX, testy = x[int(len(x)*.8):], y[int(len(x)*.8):]
   trainy = utils.to_categorical(trainy)
@@ -49,11 +56,11 @@ def load_dataset(path):
   return trainX, trainy, testX, testy
 # %% Define model's functions
 # fit a model
-def fit_model(trainX, trainy, epochs=10, batch_size=32, verbose=0):
+def fit_model(trainX, trainy, epochs=5, batch_size=32, verbose=1):
   n_timesteps, n_features, n_outputs = trainX.shape[1], trainX.shape[2], trainy.shape[1]
   model = models.Sequential([
-    layers.Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=(n_timesteps, n_features)),
-    layers.Conv1D(filters=64, kernel_size=3, activation='relu'),
+    layers.Conv1D(filters=32, kernel_size=64, activation='relu', input_shape=(n_timesteps, n_features)),
+    layers.Conv1D(filters=64, kernel_size=64, activation='relu'),
     layers.MaxPooling1D(pool_size=2),
     layers.GlobalAveragePooling1D(),
     layers.Dense(n_outputs, activation='softmax'),
