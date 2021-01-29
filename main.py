@@ -11,14 +11,38 @@ from tensorflow.keras import utils, models, layers
 from tensorflow.python.keras.layers.pooling import AveragePooling1D, GlobalAveragePooling1D
 
 # %% Define dataset's functions
-def load_dataset(path):
-  x = pd.read_csv(f"{path}X_train.txt", header=None, delim_whitespace=True).values
-  y = pd.read_csv(f"{path}y_train.txt", header=None, delim_whitespace=True).values
-  x = x.reshape(x.shape[0], x.shape[1], 1)
+def window(a, w, o, copy = False):
+    sh = (a.size - w + 1, w)
+    st = a.strides * 2
+    view = np.lib.stride_tricks.as_strided(a, strides = st, shape = sh)[0::o]
+    if copy:
+        return view.copy()
+    else:
+        return view
 
+labels = {'n': 0, 'b': 1, 'c': 2, 's': 3}
+
+def load_dataset(path):
+  filenames = tf.io.gfile.glob(str(path) + '/*')
+  x, y = np.empty(shape=(0,22050)), np.empty(shape=(0,1))
+  for filename in filenames:
+    if filename != 'dataset/joey_sound/info':
+      lines = open(filename).readlines()
+      sub_y = np.array([])
+      for i in range(7):
+        line = lines[i].split()
+        sub_y = np.hstack((sub_y, np.full(int(line[2]) - int(line[1]), labels[line[0]])))
+
+      sub_x = np.array(lines[7:], dtype='int')
+      sub_x = window(sub_x, 22050, 128)
+      sub_y = window(sub_y, 22050, 128)[:,-1::1]
+
+      x = np.vstack((x, sub_x))
+      y = np.vstack((y, sub_y))
+
+  x = x.reshape(-1, 22050, 1);
   trainX, trainy = x[:int(len(x)*.8)], y[:int(len(x)*.8)]
   testX, testy = x[int(len(x)*.8):], y[int(len(x)*.8):]
-
   trainy = utils.to_categorical(trainy)
   testy = utils.to_categorical(testy)
   print(trainX.shape, trainy.shape, testX.shape, testy.shape)
@@ -43,7 +67,7 @@ def fit_model(trainX, trainy, epochs=10, batch_size=32, verbose=0):
 
 # %%
 if __name__ == '__main__':
-  trainX, trainy, testX, testy = load_dataset('dataset/uci_har_dataset/train/')
+  trainX, trainy, testX, testy = load_dataset('dataset/joey_sound')
   # repeat experiment
   scores, model = [], None
   for r in range(1):

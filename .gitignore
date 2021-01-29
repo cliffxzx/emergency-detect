@@ -1,5 +1,6 @@
 .vscode/
-dataset/
+dataset/*
+!dataset/joey_sound/
 
 .DS_Store
 *.tflite
