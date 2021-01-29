@@ -1,0 +1,2 @@
+#include "emergency-detect.h"
+

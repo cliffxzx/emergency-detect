@@ -8,6 +8,7 @@ from numpy.lib.arraysetops import unique
 import pandas as pd
 import tensorflow as tf
 from tensorflow.keras import utils, models, layers
+from tensorflow.python.keras.layers.core import Dropout
 from tensorflow.python.keras.layers.pooling import AveragePooling1D, GlobalAveragePooling1D
 
 # %% Define dataset's functions
@@ -59,14 +60,16 @@ def load_dataset(path):
 def fit_model(trainX, trainy, epochs=10, batch_size=32, verbose=1):
   n_timesteps, n_features, n_outputs = trainX.shape[1], trainX.shape[2], trainy.shape[1]
   model = models.Sequential([
-    layers.AveragePooling1D(input_shape=(n_timesteps, n_features)),
+    layers.Input(shape=(n_timesteps, n_features)),
+    layers.AveragePooling1D(),
     layers.Conv1D(filters=32, kernel_size=64, activation='relu'),
-    layers.Conv1D(filters=16, kernel_size=64, activation='relu'),
-    layers.GlobalAveragePooling1D(),
+    layers.Conv1D(filters=32, kernel_size=64, activation='relu'),
+    layers.GlobalMaxPooling1D(),
     layers.Dense(n_outputs, activation='softmax'),
   ])
   model.summary()
-  model.compile(loss='categorical_crossentropy', optimizer='adam',lr=, metrics=['accuracy'])
+  opt = tf.keras.optimizers.Adam(learning_rate=0.0001)
+  model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
   # fit network
   model.fit(trainX, trainy, epochs=epochs, batch_size=batch_size, verbose=verbose)
 
