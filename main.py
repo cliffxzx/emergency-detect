@@ -62,7 +62,7 @@ def scheduler(epoch,lr):
     return lr
 # %% Define model's functions
 # fit a model
-def fit_model(trainX, trainy, epochs=15, batch_size=32, verbose=1):
+def fit_model(trainX, trainy, epochs=50, batch_size=32, verbose=1):
   n_timesteps, n_features, n_outputs = trainX.shape[1], trainX.shape[2], trainy.shape[1]
 
   norm_layer = layers.experimental.preprocessing.Normalization()
@@ -72,14 +72,14 @@ def fit_model(trainX, trainy, epochs=15, batch_size=32, verbose=1):
     layers.Input(shape=(n_timesteps, n_features)),
     norm_layer,
     layers.AveragePooling1D(),
-    layers.Conv1D(filters=8, kernel_size=256, activation='relu'),
+    layers.Conv1D(filters=3, kernel_size=200, activation='relu'),
     layers.MaxPooling1D(),
-    layers.Conv1D(filters=16, kernel_size=256, activation='relu'),
+    layers.Conv1D(filters=6, kernel_size=200, activation='relu'),
     layers.GlobalMaxPooling1D(),
     layers.Dense(n_outputs, activation='softmax'),
   ])
   model.summary()
-  opt = tf.keras.optimizers.Adam(learning_rate=0.0001)
+  opt = tf.keras.optimizers.Adam(learning_rate=0.001)
   model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
   # fit network
   callback = tf.keras.callbacks.LearningRateScheduler(scheduler)
