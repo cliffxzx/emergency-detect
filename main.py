@@ -56,17 +56,17 @@ def load_dataset(path):
   return trainX, trainy, testX, testy
 # %% Define model's functions
 # fit a model
-def fit_model(trainX, trainy, epochs=5, batch_size=32, verbose=1):
+def fit_model(trainX, trainy, epochs=10, batch_size=32, verbose=1):
   n_timesteps, n_features, n_outputs = trainX.shape[1], trainX.shape[2], trainy.shape[1]
   model = models.Sequential([
-    layers.Conv1D(filters=32, kernel_size=64, activation='relu', input_shape=(n_timesteps, n_features)),
-    layers.Conv1D(filters=64, kernel_size=64, activation='relu'),
-    layers.MaxPooling1D(pool_size=2),
+    layers.AveragePooling1D(input_shape=(n_timesteps, n_features)),
+    layers.Conv1D(filters=32, kernel_size=64, activation='relu'),
+    layers.Conv1D(filters=16, kernel_size=64, activation='relu'),
     layers.GlobalAveragePooling1D(),
     layers.Dense(n_outputs, activation='softmax'),
   ])
-
-  model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+  model.summary()
+  model.compile(loss='categorical_crossentropy', optimizer='adam',lr=, metrics=['accuracy'])
   # fit network
   model.fit(trainX, trainy, epochs=epochs, batch_size=batch_size, verbose=verbose)
 
@@ -74,23 +74,24 @@ def fit_model(trainX, trainy, epochs=5, batch_size=32, verbose=1):
 
 # %%
 if __name__ == '__main__':
-  trainX, trainy, testX, testy = load_dataset('dataset/joey_sound')
-  # repeat experiment
-  scores, model = [], None
-  for r in range(1):
-    sub_model = fit_model(trainX, trainy)
-    _, score = sub_model.evaluate(testX, testy, batch_size=32, verbose=0)
-    score = score * 100.0
-    if all(score > x for x in scores):
-      model = sub_model
-    print('>#%d: %.3f' % (r+1, score))
-    scores.append(score)
+  with tf.device('/device:GPU:0'):
+    trainX, trainy, testX, testy = load_dataset('dataset/joey_sound')
+    # repeat experiment
+    scores, model = [], None
+    for r in range(1):
+      sub_model = fit_model(trainX, trainy)
+      _, score = sub_model.evaluate(testX, testy, batch_size=32, verbose=0)
+      score = score * 100.0
+      if all(score > x for x in scores):
+        model = sub_model
+      print('>#%d: %.3f' % (r+1, score))
+      scores.append(score)
 
-  model.summary()
-  # summarize results
-  print(scores)
-  m, s = np.mean(scores), np.std(scores)
-  print('Accuracy: %.3f%% (±%.3f)' % (m, s))
+    model.summary()
+    # summarize results
+    print(scores)
+    m, s = np.mean(scores), np.std(scores)
+    print('Accuracy: %.3f%% (±%.3f)' % (m, s))
 
 # %%
 converter = tf.lite.TFLiteConverter.from_keras_model(model)
