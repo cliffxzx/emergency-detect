@@ -32,6 +32,7 @@ def load_dataset(path):
   x, y = np.empty(shape=(0,22050)), np.empty(shape=(0,1))
   for filename in filenames:
     if filename != 'dataset/joey_sound/info':
+      print(filename)
       lines = open(filename).readlines()
       sub_y = np.array([])
       for i in range(7):
@@ -56,12 +57,11 @@ def load_dataset(path):
   return trainX, trainy, testX, testy
 # %% Define model's functions
 # fit a model
-def fit_model(trainX, trainy, epochs=5, batch_size=32, verbose=1):
+def fit_model(trainX, trainy, epochs=10, batch_size=32, verbose=1):
   n_timesteps, n_features, n_outputs = trainX.shape[1], trainX.shape[2], trainy.shape[1]
   model = models.Sequential([
-    layers.Conv1D(filters=32, kernel_size=64, activation='relu', input_shape=(n_timesteps, n_features)),
-    layers.Conv1D(filters=64, kernel_size=64, activation='relu'),
-    layers.MaxPooling1D(pool_size=2),
+    layers.Conv1D(filters=64, kernel_size=128, activation='relu', input_shape=(n_timesteps, n_features)),
+    layers.Conv1D(filters=32, kernel_size=128, activation='relu'),
     layers.GlobalAveragePooling1D(),
     layers.Dense(n_outputs, activation='softmax'),
   ])
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
 # %%
 converter = tf.lite.TFLiteConverter.from_keras_model(model)
-tflite_model = converter.convert()
+tflite_model = converter.convert(optimize)
 
 output_filename = 'emergency-detect'
 open(f'output/{output_filename}.tflite', 'wb').write(tflite_model)
@@ -106,3 +106,6 @@ ops_list = set(map(lambda x: x['op_name'], ops_details))
 print("\nOperations list: ", ops_list)
 
 # %%
+output_filename = 'emergency-detect'
+os.system(f'echo "#include \\"emergency-detect.h\\"\n" > output/{output_filename}.cc')
+os.system(f'xxd -i output/{output_filename}.tflite >> output/{output_filename}.cc')
