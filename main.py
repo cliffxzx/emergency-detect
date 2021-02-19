@@ -8,6 +8,7 @@ from numpy.lib.arraysetops import unique
 import pandas as pd
 import tensorflow as tf
 from tensorflow.keras import utils, models, layers
+from tensorflow.python.keras.layers.core import Dropout
 from tensorflow.python.keras.layers.pooling import AveragePooling1D, GlobalAveragePooling1D
 
 # %% Define dataset's functions
@@ -55,42 +56,57 @@ def load_dataset(path):
   testy = utils.to_categorical(testy)
   print(trainX.shape, trainy.shape, testX.shape, testy.shape)
   return trainX, trainy, testX, testy
+def scheduler(epoch,lr):
+  if (epoch+1) % 5 == 0:
+    return lr*0.8
+  else:
+    return lr
 # %% Define model's functions
 # fit a model
-def fit_model(trainX, trainy, epochs=10, batch_size=32, verbose=1):
+def fit_model(trainX, trainy, epochs=50, batch_size=32, verbose=1):
   n_timesteps, n_features, n_outputs = trainX.shape[1], trainX.shape[2], trainy.shape[1]
+
+  norm_layer = layers.experimental.preprocessing.Normalization()
+  norm_layer.adapt(trainX)
+
   model = models.Sequential([
-    layers.Conv1D(filters=64, kernel_size=128, activation='relu', input_shape=(n_timesteps, n_features)),
-    layers.Conv1D(filters=32, kernel_size=128, activation='relu'),
-    layers.GlobalAveragePooling1D(),
+    layers.Input(shape=(n_timesteps, n_features)),
+    norm_layer,
+    layers.AveragePooling1D(),
+    layers.Conv1D(filters=3, kernel_size=200, activation='relu'),
+    layers.MaxPooling1D(),
+    layers.Conv1D(filters=6, kernel_size=200, activation='relu'),
+    layers.GlobalMaxPooling1D(),
     layers.Dense(n_outputs, activation='softmax'),
   ])
-
-  model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+  model.summary()
+  opt = tf.keras.optimizers.Adam(learning_rate=0.001)
+  model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
   # fit network
-  model.fit(trainX, trainy, epochs=epochs, batch_size=batch_size, verbose=verbose)
+  callback = tf.keras.callbacks.LearningRateScheduler(scheduler)
+  model.fit(trainX, trainy, epochs=epochs, batch_size=batch_size, verbose=verbose,callbacks=[callback])
 
   return model
 
 # %%
 if __name__ == '__main__':
-  trainX, trainy, testX, testy = load_dataset('dataset/joey_sound')
-  # repeat experiment
-  scores, model = [], None
-  for r in range(1):
-    sub_model = fit_model(trainX, trainy)
-    _, score = sub_model.evaluate(testX, testy, batch_size=32, verbose=0)
-    score = score * 100.0
-    if all(score > x for x in scores):
-      model = sub_model
-    print('>#%d: %.3f' % (r+1, score))
-    scores.append(score)
+  with tf.device('/device:GPU:0'):
+    trainX, trainy, testX, testy = load_dataset('dataset/joey_sound')
+    # repeat experiment
+    scores, model = [], None
+    for r in range(1):
+      sub_model = fit_model(trainX, trainy)
+      _, score = sub_model.evaluate(testX, testy, batch_size=32, verbose=0)
+      score = score * 100.0
+      if all(score > x for x in scores):
+        model = sub_model
+      print('>#%d: %.3f' % (r+1, score))
+      scores.append(score)
 
-  model.summary()
-  # summarize results
-  print(scores)
-  m, s = np.mean(scores), np.std(scores)
-  print('Accuracy: %.3f%% (±%.3f)' % (m, s))
+    # summarize results
+    print(scores)
+    m, s = np.mean(scores), np.std(scores)
+    print('Accuracy: %.3f%% (±%.3f)' % (m, s))
 
 # %%
 converter = tf.lite.TFLiteConverter.from_keras_model(model)
@@ -106,6 +122,3 @@ ops_list = set(map(lambda x: x['op_name'], ops_details))
 print("\nOperations list: ", ops_list)
 
 # %%
-output_filename = 'emergency-detect'
-os.system(f'echo "#include \\"emergency-detect.h\\"\n" > output/{output_filename}.cc')
-os.system(f'xxd -i output/{output_filename}.tflite >> output/{output_filename}.cc')
